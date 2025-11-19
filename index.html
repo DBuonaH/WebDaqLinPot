@@ -2,10 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Revelyst Web DAQ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cascadia+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cascadia+Code:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     /* CSS Variables for theming */
     :root {
@@ -69,17 +70,38 @@
     h1 {
       margin: 0 0 0.75rem 0;
       text-align: center;
-      font-size: 2.2rem;
-      font-weight: 400;
-      font-family: 'Bebas Neue', sans-serif;
-      background: linear-gradient(90deg, #00d4ff, #7b68ee);
+      font-size: 2.4rem;
+      font-weight: 700;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #00d4ff 0%, #0099ff 25%, #7b68ee 50%, #a855f7 75%, #00d4ff 100%);
+      background-size: 200% 200%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      letter-spacing: 2px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
       position: relative;
       display: inline-block;
       width: 100%;
+      animation: gradient-shift 8s ease infinite;
+      filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.3));
+    }
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    /* Glowing underline effect */
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #00d4ff, #7b68ee, #00d4ff, transparent);
+      border-radius: 2px;
+      opacity: 0.6;
     }
     /* Neon "At Night" suffix - only visible in dark mode */
     .neon-suffix {
@@ -121,9 +143,14 @@
     }
     /* Light mode title styling */
     body.light-mode h1 {
-      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 25%, #7c3aed 50%, #9333ea 75%, #2563eb 100%);
+      background-size: 200% 200%;
       -webkit-background-clip: text;
       background-clip: text;
+      filter: drop-shadow(0 0 15px rgba(37, 99, 235, 0.2));
+    }
+    body.light-mode h1::after {
+      background: linear-gradient(90deg, transparent, #2563eb, #7c3aed, #2563eb, transparent);
     }
     button {
       margin: 0.3rem;
@@ -323,8 +350,77 @@
 
     /* On narrow screens, stack the charts */
     @media (max-width: 700px) {
+      #app {
+        padding: 0.75rem;
+      }
+      h1 {
+        font-size: 1.6rem;
+        letter-spacing: 2px;
+        margin-bottom: 0.5rem;
+      }
+      h1::after {
+        width: 80%;
+      }
+      .neon-suffix {
+        font-size: 0.8rem !important;
+      }
+      #controls {
+        gap: 0.15rem;
+        padding: 0.4rem;
+      }
+      button {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.65rem;
+        margin: 0.15rem;
+      }
+      #log {
+        height: 50px;
+        font-size: 0.6rem;
+        margin-bottom: 0.5rem;
+      }
       #charts {
         grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+      .chart-box {
+        padding: 0.5rem;
+      }
+      h3 {
+        font-size: 0.7rem;
+        margin-bottom: 0.3rem;
+      }
+      .stats-row {
+        gap: 0.3rem;
+        margin-bottom: 0.3rem;
+      }
+      .stat-box {
+        padding: 0.25rem 0.3rem;
+      }
+      .stat-label {
+        font-size: 0.45rem;
+      }
+      .stat-value {
+        font-size: 0.8rem;
+      }
+      #clippy {
+        transform: scale(0.7);
+        bottom: 10px;
+        right: 10px;
+      }
+      #clippy-speech {
+        font-size: 0.6rem;
+        max-width: 140px;
+      }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 400px) {
+      h1 {
+        font-size: 1.3rem;
+      }
+      button {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.6rem;
       }
     }
 
@@ -540,7 +636,10 @@
       font-size: 0.7rem;
       max-width: 180px;
       box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
-      display: none;
+      opacity: 0;
+      transform: scale(0.8);
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
     #clippy-speech::after {
       content: '';
@@ -552,8 +651,9 @@
       border-bottom: 0;
     }
     #clippy-speech.show {
-      display: block;
-      animation: speechPop 0.3s ease-out;
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
     }
 
     /* === Clippy animations === */
@@ -651,10 +751,61 @@
     #clippy.thinking .clippy-eye::after {
       transform: translate(-50%, -30%);
     }
+
+    /* Dragging state - big eyes, blushing, tail swing */
+    #clippy.dragging .clippy-eye {
+      animation: none;
+      width: 20px;
+      height: 20px;
+      transition: all 0.15s ease;
+    }
+    #clippy.dragging .clippy-eye::after {
+      width: 10px;
+      height: 10px;
+    }
+    /* Blush marks */
+    #clippy.dragging::before,
+    #clippy.dragging::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 6px;
+      background: rgba(255, 150, 150, 0.7);
+      border-radius: 50%;
+      top: 28px;
+      z-index: 15;
+    }
+    #clippy.dragging::before {
+      left: 42px;
+    }
+    #clippy.dragging::after {
+      right: 42px;
+    }
+    /* Tail swing animation */
+    @keyframes tail-swing {
+      0%, 100% { transform: translateX(-50%) rotate(0deg); }
+      25% { transform: translateX(-50%) rotate(8deg); }
+      75% { transform: translateX(-50%) rotate(-8deg); }
+    }
+    #clippy.dragging .revely-tail {
+      animation: tail-swing 0.3s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    #clippy.dragging .tail-segment {
+      animation: none;
+    }
+    /* Open mouth when grabbed */
+    #clippy.dragging #revely-smile {
+      width: 10px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e57373;
+      border: none;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="light-mode">
   <div id="app">
     <h1>Revelyst Web DAQ <span class="neon-suffix">At Night</span></h1>
 
@@ -780,30 +931,6 @@ const themeBtn = document.getElementById('themeBtn');
 // Auto-scale state
 let autoScaleEnabled = true;
 
-// Theme toggle
-themeBtn.onclick = () => {
-  document.body.classList.toggle('light-mode');
-  const isLight = document.body.classList.contains('light-mode');
-  themeBtn.textContent = isLight ? 'Dark Mode' : 'Light Mode';
-
-  // Update chart colors for theme
-  const gridColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-  const tickColor = isLight ? '#4a5568' : '#888';
-
-  leftChart.options.scales.x.grid.color = gridColor;
-  leftChart.options.scales.y.grid.color = gridColor;
-  leftChart.options.scales.x.ticks.color = tickColor;
-  leftChart.options.scales.y.ticks.color = tickColor;
-
-  rightChart.options.scales.x.grid.color = gridColor;
-  rightChart.options.scales.y.grid.color = gridColor;
-  rightChart.options.scales.x.ticks.color = tickColor;
-  rightChart.options.scales.y.ticks.color = tickColor;
-
-  leftChart.update('none');
-  rightChart.update('none');
-};
-
 const logEl        = document.getElementById('log');
 
 // Stats display elements
@@ -850,17 +977,17 @@ const leftChart = new Chart(leftCtx, {
       x: {
         type: 'linear',
         title: { display: true, text: 'Time (s)' },
-        ticks: { color: '#aaa' },
-        grid: { color: '#222' }
+        ticks: { color: '#4a5568' },
+        grid: { color: 'rgba(0,0,0,0.1)' }
       },
       y: {
         title: { display: true, text: 'Displacement (mm)' },
-        ticks: { color: '#aaa' },
-        grid: { color: '#222' }
+        ticks: { color: '#4a5568' },
+        grid: { color: 'rgba(0,0,0,0.1)' }
       }
     },
     plugins: {
-      legend: { labels: { color: '#ccc' } }
+      legend: { labels: { color: '#4a5568' } }
     }
   }
 });
@@ -885,20 +1012,47 @@ const rightChart = new Chart(rightCtx, {
       x: {
         type: 'linear',
         title: { display: true, text: 'Time (s)' },
-        ticks: { color: '#aaa' },
-        grid: { color: '#222' }
+        ticks: { color: '#4a5568' },
+        grid: { color: 'rgba(0,0,0,0.1)' }
       },
       y: {
         title: { display: true, text: 'Displacement (mm)' },
-        ticks: { color: '#aaa' },
-        grid: { color: '#222' }
+        ticks: { color: '#4a5568' },
+        grid: { color: 'rgba(0,0,0,0.1)' }
       }
     },
     plugins: {
-      legend: { labels: { color: '#ccc' } }
+      legend: { labels: { color: '#4a5568' } }
     }
   }
 });
+
+// Theme toggle
+themeBtn.onclick = () => {
+  document.body.classList.toggle('light-mode');
+  const isLight = document.body.classList.contains('light-mode');
+  themeBtn.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+
+  // Update chart colors for theme
+  const gridColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const tickColor = isLight ? '#4a5568' : '#888';
+  const legendColor = isLight ? '#4a5568' : '#ccc';
+
+  leftChart.options.scales.x.grid.color = gridColor;
+  leftChart.options.scales.y.grid.color = gridColor;
+  leftChart.options.scales.x.ticks.color = tickColor;
+  leftChart.options.scales.y.ticks.color = tickColor;
+  leftChart.options.plugins.legend.labels.color = legendColor;
+
+  rightChart.options.scales.x.grid.color = gridColor;
+  rightChart.options.scales.y.grid.color = gridColor;
+  rightChart.options.scales.x.ticks.color = tickColor;
+  rightChart.options.scales.y.ticks.color = tickColor;
+  rightChart.options.plugins.legend.labels.color = legendColor;
+
+  leftChart.update('none');
+  rightChart.update('none');
+};
 
 // === Logging helper ===
 function log(msg) {
@@ -1247,7 +1401,8 @@ const clippyTips = [
   "Export your data to CSV for analysis in Excel or Python!",
   "The charts show the last ~20 seconds of live data.",
   "You can drag me anywhere on the screen!",
-  "Need a fresh start? Click 'New Run' to clear everything."
+  "Need a fresh start? Click 'New Run' to clear everything.",
+  "I'm an apex predator!"
 ];
 
 // Funny phrases for different events
@@ -1345,6 +1500,10 @@ clippy.addEventListener('mousedown', (e) => {
   dragOffsetX = e.clientX - clippy.offsetLeft;
   dragOffsetY = e.clientY - clippy.offsetTop;
 
+  // Add dragging state for visual effects
+  clippy.classList.remove('idle', 'wave', 'excited', 'thinking');
+  clippy.classList.add('dragging');
+
   const onMouseMove = (e) => {
     isDragging = true;
     clippy.style.left = (e.clientX - dragOffsetX) + 'px';
@@ -1356,6 +1515,8 @@ clippy.addEventListener('mousedown', (e) => {
   const onMouseUp = () => {
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
+    clippy.classList.remove('dragging');
+    clippy.classList.add('idle');
     setTimeout(() => isDragging = false, 10);
   };
 
@@ -1370,6 +1531,10 @@ clippy.addEventListener('touchstart', (e) => {
   dragOffsetX = touch.clientX - clippy.offsetLeft;
   dragOffsetY = touch.clientY - clippy.offsetTop;
 
+  // Add dragging state for visual effects
+  clippy.classList.remove('idle', 'wave', 'excited', 'thinking');
+  clippy.classList.add('dragging');
+
   const onTouchMove = (e) => {
     isDragging = true;
     const touch = e.touches[0];
@@ -1382,6 +1547,8 @@ clippy.addEventListener('touchstart', (e) => {
   const onTouchEnd = () => {
     document.removeEventListener('touchmove', onTouchMove);
     document.removeEventListener('touchend', onTouchEnd);
+    clippy.classList.remove('dragging');
+    clippy.classList.add('idle');
     setTimeout(() => isDragging = false, 10);
   };
 
