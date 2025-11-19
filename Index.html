@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Revelyst Web DAQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cascadia+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Variables for theming */
+    :root {
+      --bg-primary: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      --bg-secondary: rgba(0,0,0,0.4);
+      --bg-card: rgba(255,255,255,0.02);
+      --bg-controls: rgba(255,255,255,0.03);
+      --text-primary: #eee;
+      --text-secondary: #a0a0a0;
+      --text-muted: #888;
+      --border-color: rgba(255,255,255,0.08);
+      --border-light: rgba(255,255,255,0.05);
+      --btn-bg: linear-gradient(180deg, #2a2a3a 0%, #1a1a2a 100%);
+      --btn-bg-hover: linear-gradient(180deg, #3a3a4a 0%, #2a2a3a 100%);
+      --btn-border: #3a3a4a;
+      --btn-border-hover: #4a4a5a;
+      --shadow-color: rgba(0,0,0,0.3);
+      --stat-bg: rgba(0,0,0,0.3);
+      --canvas-bg: rgba(0,0,0,0.3);
+    }
+
+    /* Light mode */
+    body.light-mode {
+      --bg-primary: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+      --bg-secondary: rgba(255,255,255,0.9);
+      --bg-card: rgba(255,255,255,0.8);
+      --bg-controls: rgba(0,0,0,0.03);
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a5568;
+      --text-muted: #718096;
+      --border-color: rgba(0,0,0,0.1);
+      --border-light: rgba(0,0,0,0.05);
+      --btn-bg: linear-gradient(180deg, #e2e8f0 0%, #cbd5e0 100%);
+      --btn-bg-hover: linear-gradient(180deg, #cbd5e0 0%, #a0aec0 100%);
+      --btn-border: #a0aec0;
+      --btn-border-hover: #718096;
+      --shadow-color: rgba(0,0,0,0.1);
+      --stat-bg: rgba(0,0,0,0.05);
+      --canvas-bg: rgba(255,255,255,0.8);
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden; /* no page scrolling */
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh; /* full screen */
+      padding: 1.25rem;
+      box-sizing: border-box;
+    }
+    h1 {
+      margin: 0 0 0.75rem 0;
+      text-align: center;
+      font-size: 2.2rem;
+      font-weight: 400;
+      font-family: 'Bebas Neue', sans-serif;
+      background: linear-gradient(90deg, #00d4ff, #7b68ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    /* Neon "At Night" suffix - only visible in dark mode */
+    .neon-suffix {
+      display: none;
+    }
+    body:not(.light-mode) .neon-suffix {
+      display: inline-block;
+      position: absolute;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      color: #ff00ff;
+      text-shadow:
+        0 0 5px #ff00ff,
+        0 0 10px #ff00ff,
+        0 0 20px #ff00ff,
+        0 0 40px #ff00ff,
+        0 0 80px #ff00ff;
+      animation: neon-flicker 2s infinite alternate;
+      -webkit-text-fill-color: #fff;
+      background: none;
+      -webkit-background-clip: unset;
+      background-clip: unset;
+      transform: rotate(-12deg);
+      margin-left: 8px;
+      top: -2px;
+    }
+    @keyframes neon-flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow:
+          0 0 5px #ff00ff,
+          0 0 10px #ff00ff,
+          0 0 20px #ff00ff,
+          0 0 40px #ff00ff,
+          0 0 80px #ff00ff;
+      }
+      20%, 24%, 55% {
+        text-shadow: none;
+      }
+    }
+    /* Light mode title styling */
+    body.light-mode h1 {
+      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    button {
+      margin: 0.3rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      font-family: 'Cascadia Code', monospace;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px var(--shadow-color);
+    }
+    button:hover:not(:disabled) {
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px var(--shadow-color);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px var(--shadow-color);
+    }
+    button:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+    /* Theme toggle button */
+    #themeBtn {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      border-color: #fbbf24;
+    }
+    #themeBtn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+    }
+    body.light-mode #themeBtn {
+      background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+      border-color: #3b82f6;
+    }
+    body.light-mode #themeBtn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #2563eb 0%, #1e3a8a 100%);
+    }
+    /* Primary action buttons */
+    #connectBtn {
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      border-color: #3b82f6;
+    }
+    #connectBtn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    }
+    #startRecBtn {
+      background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+      border-color: #22c55e;
+    }
+    #startRecBtn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+    }
+    #stopRecBtn {
+      background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+      border-color: #ef4444;
+    }
+    #stopRecBtn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+    }
+    #exportBtn {
+      background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+      border-color: #8b5cf6;
+    }
+    #exportBtn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+    }
+    #controls {
+      margin-bottom: 0.75rem;
+      flex: 0 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.25rem;
+      padding: 0.5rem;
+      background: var(--bg-controls);
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    #log {
+      height: 70px;
+      overflow-y: auto;
+      background: var(--bg-secondary);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 0.7rem;
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      white-space: pre-wrap;
+      margin-bottom: 0.75rem;
+      flex: 0 0 auto;
+      color: var(--text-secondary);
+      transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Charts area takes all remaining height */
+    #charts {
+      flex: 1 1 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 1fr;
+      gap: 1rem;
+      min-height: 0;
+    }
+    .chart-box {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--bg-card);
+      border-radius: 10px;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    /* Canvas wrapper for proper Chart.js resizing */
+    .chart-wrapper {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+    }
+    h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex: 0 0 auto;
+      transition: color 0.3s ease;
+    }
+    canvas {
+      background: var(--canvas-bg);
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      box-sizing: border-box;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Stats display windows */
+    .stats-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex: 0 0 auto;
+    }
+    .stat-box {
+      flex: 1;
+      background: var(--stat-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.4rem 0.5rem;
+      text-align: center;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .stat-label {
+      font-size: 0.55rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.15rem;
+      transition: color 0.3s ease;
+    }
+    .stat-value {
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    }
+    .stat-value.current {
+      color: #0af;
+    }
+    .stat-value.min {
+      color: #4ade80;
+    }
+    .stat-value.max {
+      color: #f97316;
+    }
+    .chart-box .stat-value.current {
+      color: rgb(0, 200, 255);
+    }
+    .chart-box:last-child .stat-value.current {
+      color: rgb(255, 180, 0);
+    }
+
+    /* On narrow screens, stack the charts */
+    @media (max-width: 700px) {
+      #charts {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* === Calibration modal overlay === */
+    #calibOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #calibPanel {
+      max-width: 380px;
+      width: 90%;
+      padding: 1.25rem 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg, #1e1e2e 0%, #16161f 100%);
+      font-size: 0.9rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    #calibPanel strong {
+      color: #00d4ff;
+      font-size: 1rem;
+    }
+    #calibText {
+      margin: 0.75rem 0 1rem 0;
+      color: #aaa;
+      line-height: 1.5;
+    }
+    #calibButtons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+    #calibNextBtn {
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      border-color: #3b82f6;
+    }
+    #calibNextBtn:hover {
+      background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    /* === Revely the Dragonfly helper character === */
+    #clippy {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 140px;
+      height: 160px;
+      cursor: grab;
+      z-index: 200;
+      user-select: none;
+    }
+    #clippy:active {
+      cursor: grabbing;
+    }
+    /* Dragonfly thorax (main body segment) */
+    #clippy-body {
+      width: 24px;
+      height: 30px;
+      background: #5b9bd5;
+      border-radius: 50%;
+      position: absolute;
+      top: 38px;
+      left: 50%;
+      transform: translateX(-50%);
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+    /* Dragonfly head */
+    #clippy-body::before {
+      content: '';
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28px;
+      height: 22px;
+      background: #7eb6e6;
+      border-radius: 50%;
+    }
+    /* Tail container - we'll use nested elements for segments */
+    .revely-tail {
+      position: absolute;
+      top: 65px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+    .tail-segment {
+      background: #5b9bd5;
+      border-radius: 50%;
+    }
+    .tail-segment:nth-child(1) { width: 18px; height: 12px; }
+    .tail-segment:nth-child(2) { width: 14px; height: 10px; }
+    .tail-segment:nth-child(3) { width: 12px; height: 9px; }
+    .tail-segment:nth-child(4) { width: 10px; height: 8px; }
+    .tail-segment:nth-child(5) { width: 8px; height: 7px; }
+    .tail-segment:nth-child(6) { width: 6px; height: 6px; }
+    .tail-segment:nth-child(7) { width: 5px; height: 5px; }
+    /* Eyes - big round eyes on sides of head */
+    #clippy-eyes {
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+    .clippy-eye {
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      position: relative;
+      border: 2px solid #3a5a80;
+    }
+    .clippy-eye::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px;
+      height: 8px;
+      background: #000;
+      border-radius: 50%;
+    }
+    /* Pupil highlight */
+    .clippy-eye::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 3px;
+      height: 3px;
+      background: #fff;
+      border-radius: 50%;
+      z-index: 5;
+    }
+    /* Wings - long pointed dragonfly wings */
+    .revely-wing {
+      position: absolute;
+      background: rgba(173, 216, 255, 0.7);
+      border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;
+    }
+    .revely-wing.left-top {
+      width: 50px;
+      height: 16px;
+      top: 42px;
+      left: 5px;
+      transform: rotate(-15deg);
+      transform-origin: right center;
+    }
+    .revely-wing.right-top {
+      width: 50px;
+      height: 16px;
+      top: 42px;
+      right: 5px;
+      transform: rotate(15deg);
+      transform-origin: left center;
+    }
+    .revely-wing.left-bottom {
+      width: 45px;
+      height: 14px;
+      top: 54px;
+      left: 8px;
+      transform: rotate(-5deg);
+      transform-origin: right center;
+    }
+    .revely-wing.right-bottom {
+      width: 45px;
+      height: 14px;
+      top: 54px;
+      right: 8px;
+      transform: rotate(5deg);
+      transform-origin: left center;
+    }
+    /* Smile */
+    #revely-smile {
+      position: absolute;
+      top: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 4px;
+      border: 2px solid #e57373;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      z-index: 10;
+    }
+    /* Hide old brow elements - not needed for this design */
+    #clippy-brow-left, #clippy-brow-right {
+      display: none;
+    }
+    #clippy-speech {
+      position: absolute;
+      bottom: 165px;
+      right: 0;
+      background: #fff;
+      color: #000;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      max-width: 180px;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+      display: none;
+    }
+    #clippy-speech::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      right: 20px;
+      border: 8px solid transparent;
+      border-top-color: #fff;
+      border-bottom: 0;
+    }
+    #clippy-speech.show {
+      display: block;
+      animation: speechPop 0.3s ease-out;
+    }
+
+    /* === Clippy animations === */
+    @keyframes speechPop {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes blink {
+      0%, 90%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.1); }
+    }
+
+    @keyframes idle-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    @keyframes wave {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-10deg); }
+      75% { transform: rotate(10deg); }
+    }
+
+    @keyframes excited {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-8px) rotate(-5deg); }
+      75% { transform: translateY(-8px) rotate(5deg); }
+    }
+
+    @keyframes flutter-left-top {
+      0%, 100% { transform: rotate(-15deg); }
+      50% { transform: rotate(-25deg); }
+    }
+
+    @keyframes flutter-right-top {
+      0%, 100% { transform: rotate(15deg); }
+      50% { transform: rotate(25deg); }
+    }
+
+    @keyframes flutter-left-bottom {
+      0%, 100% { transform: rotate(-5deg); }
+      50% { transform: rotate(-15deg); }
+    }
+
+    @keyframes flutter-right-bottom {
+      0%, 100% { transform: rotate(5deg); }
+      50% { transform: rotate(15deg); }
+    }
+
+    @keyframes hover-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* Idle state - whole character hovers */
+    #clippy.idle {
+      animation: hover-float 2s ease-in-out infinite;
+    }
+
+    #clippy .clippy-eye {
+      animation: blink 4s infinite;
+    }
+
+    /* Wing fluttering */
+    #clippy .revely-wing.left-top {
+      animation: flutter-left-top 0.12s ease-in-out infinite;
+    }
+
+    #clippy .revely-wing.right-top {
+      animation: flutter-right-top 0.12s ease-in-out infinite;
+    }
+
+    #clippy .revely-wing.left-bottom {
+      animation: flutter-left-bottom 0.12s ease-in-out infinite;
+    }
+
+    #clippy .revely-wing.right-bottom {
+      animation: flutter-right-bottom 0.12s ease-in-out infinite;
+    }
+
+    #clippy.wave {
+      animation: wave 0.5s ease-in-out 3;
+    }
+
+    #clippy.excited {
+      animation: excited 0.3s ease-in-out 4;
+    }
+
+    #clippy.thinking .clippy-eye {
+      animation: none;
+      transform: scaleY(0.7);
+    }
+
+    #clippy.thinking .clippy-eye::after {
+      transform: translate(-50%, -30%);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="app">
+    <h1>Revelyst Web DAQ <span class="neon-suffix">At Night</span></h1>
+
+    <div id="controls">
+      <button id="connectBtn">Connect</button>
+
+      <button id="startRecBtn" disabled>Start Record</button>
+      <button id="stopRecBtn" disabled>Stop Record</button>
+      <button id="newRunBtn" disabled>New Run</button>
+      <button id="exportBtn" disabled>Export CSV</button>
+
+      <button id="tareBtn" disabled>Tare</button>
+      <button id="calibBtn" disabled>Calibrate</button>
+      <button id="autoScaleBtn">Auto Scale: ON</button>
+      <button id="themeBtn">Light Mode</button>
+    </div>
+
+    <!-- Log / print box directly under buttons -->
+    <div id="log"></div>
+
+    <!-- Charts side by side, filling remaining height -->
+    <div id="charts">
+      <div class="chart-box">
+        <h3>Left Pot (mm vs time)</h3>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Current</div>
+            <div class="stat-value current" id="leftCurrent">--</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Min</div>
+            <div class="stat-value min" id="leftMin">--</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Max</div>
+            <div class="stat-value max" id="leftMax">--</div>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="leftChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-box">
+        <h3>Right Pot (mm vs time)</h3>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Current</div>
+            <div class="stat-value current" id="rightCurrent">--</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Min</div>
+            <div class="stat-value min" id="rightMin">--</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Max</div>
+            <div class="stat-value max" id="rightMax">--</div>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="rightChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revely the Dragonfly helper character -->
+  <div id="clippy">
+    <div id="clippy-speech">Hi! I'm Revely, your DAQ buddy. Click me for tips!</div>
+    <div id="clippy-eyes">
+      <div class="clippy-eye"></div>
+      <div class="clippy-eye"></div>
+    </div>
+    <div id="revely-smile"></div>
+    <div id="clippy-body"></div>
+    <div class="revely-wing left-top"></div>
+    <div class="revely-wing right-top"></div>
+    <div class="revely-wing left-bottom"></div>
+    <div class="revely-wing right-bottom"></div>
+    <div class="revely-tail">
+      <div class="tail-segment"></div>
+      <div class="tail-segment"></div>
+      <div class="tail-segment"></div>
+      <div class="tail-segment"></div>
+      <div class="tail-segment"></div>
+      <div class="tail-segment"></div>
+      <div class="tail-segment"></div>
+    </div>
+  </div>
+
+  <!-- Calibration modal overlay -->
+  <div id="calibOverlay">
+    <div id="calibPanel">
+      <div><strong>Calibration wizard</strong></div>
+      <div id="calibText"></div>
+      <div id="calibButtons">
+        <button id="calibCancelBtn">Cancel</button>
+        <button id="calibNextBtn">Next</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// === BLE UUIDs (must match firmware) ===
+const SERVICE_UUID   = '12345678-0000-4000-8000-000000000001';
+const CMD_CHAR_UUID  = '12345678-0000-4000-8000-000000000002';
+const LIVE_CHAR_UUID = '12345678-0000-4000-8000-000000000003';
+
+// === BLE handles ===
+let device, server, service;
+let cmdChar, liveChar;
+
+// === UI elements ===
+const connectBtn   = document.getElementById('connectBtn');
+const startRecBtn  = document.getElementById('startRecBtn');
+const stopRecBtn   = document.getElementById('stopRecBtn');
+const newRunBtn    = document.getElementById('newRunBtn');
+const exportBtn    = document.getElementById('exportBtn');
+const tareBtn      = document.getElementById('tareBtn');
+const calibBtn     = document.getElementById('calibBtn');
+const autoScaleBtn = document.getElementById('autoScaleBtn');
+const themeBtn = document.getElementById('themeBtn');
+
+// Auto-scale state
+let autoScaleEnabled = true;
+
+// Theme toggle
+themeBtn.onclick = () => {
+  document.body.classList.toggle('light-mode');
+  const isLight = document.body.classList.contains('light-mode');
+  themeBtn.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+
+  // Update chart colors for theme
+  const gridColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const tickColor = isLight ? '#4a5568' : '#888';
+
+  leftChart.options.scales.x.grid.color = gridColor;
+  leftChart.options.scales.y.grid.color = gridColor;
+  leftChart.options.scales.x.ticks.color = tickColor;
+  leftChart.options.scales.y.ticks.color = tickColor;
+
+  rightChart.options.scales.x.grid.color = gridColor;
+  rightChart.options.scales.y.grid.color = gridColor;
+  rightChart.options.scales.x.ticks.color = tickColor;
+  rightChart.options.scales.y.ticks.color = tickColor;
+
+  leftChart.update('none');
+  rightChart.update('none');
+};
+
+const logEl        = document.getElementById('log');
+
+// Stats display elements
+const leftCurrentEl  = document.getElementById('leftCurrent');
+const leftMinEl      = document.getElementById('leftMin');
+const leftMaxEl      = document.getElementById('leftMax');
+const rightCurrentEl = document.getElementById('rightCurrent');
+const rightMinEl     = document.getElementById('rightMin');
+const rightMaxEl     = document.getElementById('rightMax');
+
+// Stats tracking
+let leftMin = Infinity, leftMax = -Infinity;
+let rightMin = Infinity, rightMax = -Infinity;
+
+// Calibration modal elements
+const calibOverlay   = document.getElementById('calibOverlay');
+const calibTextEl    = document.getElementById('calibText');
+const calibNextBtn   = document.getElementById('calibNextBtn');
+const calibCancelBtn = document.getElementById('calibCancelBtn');
+
+// === Chart.js setup ===
+const leftCtx  = document.getElementById('leftChart').getContext('2d');
+const rightCtx = document.getElementById('rightChart').getContext('2d');
+
+const MAX_POINTS = 400; // last ~20 s at 20 Hz
+
+const leftChart = new Chart(leftCtx, {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: 'Left (mm)',
+      borderColor: 'rgb(0, 200, 255)',
+      borderWidth: 1,
+      pointRadius: 0,
+      data: []
+    }]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,   // fill container
+    parsing: false,
+    scales: {
+      x: {
+        type: 'linear',
+        title: { display: true, text: 'Time (s)' },
+        ticks: { color: '#aaa' },
+        grid: { color: '#222' }
+      },
+      y: {
+        title: { display: true, text: 'Displacement (mm)' },
+        ticks: { color: '#aaa' },
+        grid: { color: '#222' }
+      }
+    },
+    plugins: {
+      legend: { labels: { color: '#ccc' } }
+    }
+  }
+});
+
+const rightChart = new Chart(rightCtx, {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: 'Right (mm)',
+      borderColor: 'rgb(255, 180, 0)',
+      borderWidth: 1,
+      pointRadius: 0,
+      data: []
+    }]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,   // fill container
+    parsing: false,
+    scales: {
+      x: {
+        type: 'linear',
+        title: { display: true, text: 'Time (s)' },
+        ticks: { color: '#aaa' },
+        grid: { color: '#222' }
+      },
+      y: {
+        title: { display: true, text: 'Displacement (mm)' },
+        ticks: { color: '#aaa' },
+        grid: { color: '#222' }
+      }
+    },
+    plugins: {
+      legend: { labels: { color: '#ccc' } }
+    }
+  }
+});
+
+// === Logging helper ===
+function log(msg) {
+  console.log(msg);
+  logEl.textContent += msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// === Calibration + Tare (browser-side) ===
+const ADC_MAX = 4095;
+const VREF    = 3.3;
+
+const cal = {
+  L_zero: 0,
+  L_span: ADC_MAX,
+  R_zero: 0,
+  R_span: ADC_MAX,
+  L_tare_mm: 0,
+  R_tare_mm: 0
+};
+
+let lastSample = null;
+
+// Map raw -> mm using current calibration and tare
+function rawToMm(raw, zero, span, tare) {
+  if (span <= zero + 1) return 0;
+  let mm = (raw - zero) * 10.0 / (span - zero); // 10 mm stroke
+  if (mm < 0) mm = 0;
+  if (mm > 10) mm = 10;
+  mm -= tare;
+  return mm;
+}
+
+// === Recording in browser (from live stream) ===
+let recording     = false;
+let recordedData  = []; // each: {t_ms, L_raw, R_raw}
+
+function resetRecording() {
+  recording = false;
+  recordedData = [];
+}
+
+// Clear charts
+function clearCharts() {
+  leftChart.data.datasets[0].data = [];
+  rightChart.data.datasets[0].data = [];
+  leftChart.update('none');
+  rightChart.update('none');
+}
+
+// === Calibration wizard state machine ===
+let calibState = 'idle'; // 'idle' | 'zero' | 'span'
+
+function showCalibPanel(text) {
+  calibTextEl.textContent = text;
+  calibOverlay.style.display = 'flex';   // show modal centered
+}
+
+function hideCalibPanel() {
+  calibOverlay.style.display = 'none';
+  calibState = 'idle';
+}
+
+// === BLE connect ===
+async function connect() {
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [SERVICE_UUID] }]
+    });
+    server  = await device.gatt.connect();
+    service = await server.getPrimaryService(SERVICE_UUID);
+
+    cmdChar  = await service.getCharacteristic(CMD_CHAR_UUID);
+    liveChar = await service.getCharacteristic(LIVE_CHAR_UUID);
+
+    await liveChar.startNotifications();
+    liveChar.addEventListener('characteristicvaluechanged', onLiveData);
+
+    log('Connected to DAQ');
+
+    // Enable controls
+    startRecBtn.disabled = false;
+    stopRecBtn.disabled  = false;
+    newRunBtn.disabled   = false;
+    exportBtn.disabled   = false;
+    tareBtn.disabled     = false;
+    calibBtn.disabled    = false;
+
+    // Revely celebrates connection
+    if (typeof showEventPhrase === 'function') {
+      showEventPhrase(connectPhrases, 'excited');
+    }
+
+  } catch (e) {
+    console.error(e);
+    log('Error: ' + e);
+  }
+}
+
+// === BLE live data handler ===
+// Packet: [0..3] t_ms, [4..5] L_raw, [6..7] R_raw, [8..9] L_mm*100, [10..11] R_mm*100
+function onLiveData(event) {
+  const dv = event.target.value;
+  if (dv.byteLength < 12) return;
+
+  const t_ms   = dv.getUint32(0, true);
+  const L_raw  = dv.getUint16(4, true);
+  const R_raw  = dv.getUint16(6, true);
+
+  const L_mm   = rawToMm(L_raw, cal.L_zero, cal.L_span, cal.L_tare_mm);
+  const R_mm   = rawToMm(R_raw, cal.R_zero, cal.R_span, cal.R_tare_mm);
+
+  lastSample = { t_ms, L_raw, R_raw, L_mm, R_mm };
+
+  const t_s = t_ms / 1000.0;
+
+  // Update charts
+  leftChart.data.datasets[0].data.push({ x: t_s, y: L_mm });
+  rightChart.data.datasets[0].data.push({ x: t_s, y: R_mm });
+
+  if (leftChart.data.datasets[0].data.length > MAX_POINTS) {
+    leftChart.data.datasets[0].data.shift();
+  }
+  if (rightChart.data.datasets[0].data.length > MAX_POINTS) {
+    rightChart.data.datasets[0].data.shift();
+  }
+
+  leftChart.update('none');
+  rightChart.update('none');
+
+  // Update stats displays
+  leftCurrentEl.textContent = L_mm.toFixed(3);
+  rightCurrentEl.textContent = R_mm.toFixed(3);
+
+  // Track min/max
+  if (L_mm < leftMin) {
+    leftMin = L_mm;
+    leftMinEl.textContent = L_mm.toFixed(3);
+  }
+  if (L_mm > leftMax) {
+    leftMax = L_mm;
+    leftMaxEl.textContent = L_mm.toFixed(3);
+  }
+  if (R_mm < rightMin) {
+    rightMin = R_mm;
+    rightMinEl.textContent = R_mm.toFixed(3);
+  }
+  if (R_mm > rightMax) {
+    rightMax = R_mm;
+    rightMaxEl.textContent = R_mm.toFixed(3);
+  }
+
+  // If recording, log for CSV export later
+  if (recording) {
+    recordedData.push({ t_ms, L_raw, R_raw });
+  }
+}
+
+// === BLE commands ===
+async function sendCommand(cmdId) {
+  if (!cmdChar) return;
+  const buf = new Uint8Array([cmdId]);
+  try {
+    await cmdChar.writeValue(buf);
+  } catch (e) {
+    console.error('sendCommand error', e);
+    log('sendCommand error: ' + e);
+  }
+}
+
+// === Button handlers ===
+connectBtn.onclick = connect;
+
+startRecBtn.onclick = async () => {
+  resetRecording();
+  recording = true;
+  await sendCommand(0x01); // CMD_START_RECORD
+  log('Recording started (browser-side log)');
+};
+
+stopRecBtn.onclick = async () => {
+  recording = false;
+  await sendCommand(0x02); // CMD_STOP_RECORD
+  log('Recording stopped');
+};
+
+newRunBtn.onclick = async () => {
+  recording = false;
+  await sendCommand(0x02); // ensure device is not recording
+  resetRecording();
+  clearCharts();
+
+  // Reset stats
+  leftMin = Infinity; leftMax = -Infinity;
+  rightMin = Infinity; rightMax = -Infinity;
+  leftCurrentEl.textContent = '--';
+  leftMinEl.textContent = '--';
+  leftMaxEl.textContent = '--';
+  rightCurrentEl.textContent = '--';
+  rightMinEl.textContent = '--';
+  rightMaxEl.textContent = '--';
+
+  log('New run: charts and recorded data cleared');
+};
+
+// Auto-scale toggle
+autoScaleBtn.onclick = () => {
+  autoScaleEnabled = !autoScaleEnabled;
+  autoScaleBtn.textContent = autoScaleEnabled ? 'Auto Scale: ON' : 'Auto Scale: OFF';
+
+  if (autoScaleEnabled) {
+    // Re-enable auto scaling
+    leftChart.options.scales.y.min = undefined;
+    leftChart.options.scales.y.max = undefined;
+    rightChart.options.scales.y.min = undefined;
+    rightChart.options.scales.y.max = undefined;
+  } else {
+    // Set fixed scale from -2 to 12 mm
+    leftChart.options.scales.y.min = -2;
+    leftChart.options.scales.y.max = 12;
+    rightChart.options.scales.y.min = -2;
+    rightChart.options.scales.y.max = 12;
+  }
+
+  leftChart.update('none');
+  rightChart.update('none');
+  log(`Auto scale: ${autoScaleEnabled ? 'enabled' : 'disabled (fixed -2 to 12 mm)'}`);
+};
+
+// Tare: set current mm as zero for both channels
+tareBtn.onclick = async () => {
+  if (!lastSample) {
+    log('Tare: no sample yet');
+    return;
+  }
+  const L_mm_raw = rawToMm(lastSample.L_raw, cal.L_zero, cal.L_span, 0);
+  const R_mm_raw = rawToMm(lastSample.R_raw, cal.R_zero, cal.R_span, 0);
+  cal.L_tare_mm = L_mm_raw;
+  cal.R_tare_mm = R_mm_raw;
+
+  await sendCommand(0x06); // CMD_TARE to firmware
+  log(`Tare set: L=${L_mm_raw.toFixed(3)} mm, R=${R_mm_raw.toFixed(3)} mm`);
+
+  // Revely celebrates tare
+  if (typeof showEventPhrase === 'function') {
+    showEventPhrase(tarePhrases, 'excited');
+  }
+};
+
+// === Calibration wizard ===
+calibBtn.onclick = () => {
+  if (!lastSample) {
+    log('Calibrate: wait for at least one sample first');
+    return;
+  }
+  calibState = 'zero';
+  showCalibPanel('Step 1: Move both sensors to mechanical 0 mm, then click "Next" to capture zero.');
+  log('Calibration started: waiting for zero position');
+};
+
+calibNextBtn.onclick = async () => {
+  if (!lastSample) {
+    log('Calibration: no sample yet');
+    return;
+  }
+
+  if (calibState === 'zero') {
+    // Capture zero
+    cal.L_zero = lastSample.L_raw;
+    cal.R_zero = lastSample.R_raw;
+    await sendCommand(0x04); // CMD_CAL_ZERO
+    log(`Cal Zero captured: L_raw=${cal.L_zero}, R_raw=${cal.R_zero}`);
+    calibState = 'span';
+    showCalibPanel('Step 2: Move both sensors to mechanical full stroke (10 mm), then click "Next" to capture span.');
+  } else if (calibState === 'span') {
+    // Capture span
+    cal.L_span = lastSample.L_raw;
+    cal.R_span = lastSample.R_raw;
+    await sendCommand(0x05); // CMD_CAL_SPAN
+    log(`Cal Span captured: L_raw=${cal.L_span}, R_raw=${cal.R_span}`);
+    hideCalibPanel();
+    log('Calibration complete.');
+
+    // Revely celebrates calibration
+    if (typeof showEventPhrase === 'function') {
+      showEventPhrase(calibratePhrases, 'excited');
+    }
+  }
+};
+
+calibCancelBtn.onclick = () => {
+  hideCalibPanel();
+  log('Calibration canceled.');
+};
+
+// === CSV export ===
+exportBtn.onclick = () => {
+  if (recordedData.length === 0) {
+    log('No recorded data to export');
+    return;
+  }
+
+  // CSV: Time | L_raw | L_volts | L_mm | R_raw | R_volts | R_mm
+  let csv = 'Time_ms,L_raw,L_volts,L_mm,R_raw,R_volts,R_mm\n';
+
+  recordedData.forEach(s => {
+    const t_ms  = s.t_ms;
+    const L_raw = s.L_raw;
+    const R_raw = s.R_raw;
+
+    const L_volts = L_raw * VREF / ADC_MAX;
+    const R_volts = R_raw * VREF / ADC_MAX;
+
+    const L_mm = rawToMm(L_raw, cal.L_zero, cal.L_span, cal.L_tare_mm);
+    const R_mm = rawToMm(R_raw, cal.R_zero, cal.R_span, cal.R_tare_mm);
+
+    csv += `${t_ms},${L_raw},${L_volts.toFixed(4)},${L_mm.toFixed(4)},${R_raw},${R_volts.toFixed(4)},${R_mm.toFixed(4)}\n`;
+  });
+
+  // Create and trigger download
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `linpot_data_${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  log(`Exported ${recordedData.length} samples to CSV`);
+
+  // Revely celebrates export
+  if (typeof showEventPhrase === 'function') {
+    showEventPhrase(exportPhrases, 'excited');
+  }
+};
+
+// === Clippy helper character ===
+const clippy = document.getElementById('clippy');
+const clippySpeech = document.getElementById('clippy-speech');
+
+// Clippy tips
+const clippyTips = [
+  "Click 'Connect' to pair with your Photon2 DAQ device!",
+  "Use 'Calibrate' to set your zero and full-stroke positions.",
+  "Don't forget to 'Tare' before taking measurements!",
+  "Start recording before your test run, stop when done.",
+  "Export your data to CSV for analysis in Excel or Python!",
+  "The charts show the last ~20 seconds of live data.",
+  "You can drag me anywhere on the screen!",
+  "Need a fresh start? Click 'New Run' to clear everything."
+];
+
+// Funny phrases for different events
+const connectPhrases = [
+  "We're connected! Time to collect some sweet, sweet data!",
+  "Houston, we have contact! Ready for liftoff!",
+  "Locked and loaded! Let's measure some stuff!",
+  "Connection successful! I can feel the electrons flowing!",
+  "Boom! We're in! Your sensors await your command!",
+  "ooooooooweeeeeee! Let's generate shareholder value!"
+];
+
+const exportPhrases = [
+  "Data exported! Time to make some beautiful charts!",
+  "CSV delivered! Your spreadsheet awaits!",
+  "Boom! Data's out! Excel is gonna love this!",
+  "Export complete! That's some fine data you got there!",
+  "Mission accomplished! Your data is free!"
+];
+
+const calibratePhrases = [
+  "Calibration complete! We're dialed in and ready to roll!",
+  "Perfectly calibrated! Like a finely tuned instrument!",
+  "Zero to hero! Your sensors are now super accurate!",
+  "Calibration done! Now we're cooking with gas!",
+  "Nailed it! Your measurements will be spot on!"
+];
+
+const tarePhrases = [
+  "Tared! Starting fresh from zero!",
+  "Zero'd out! It's like a clean slate!",
+  "Tare complete! Ground zero established!",
+  "Reset! Now that's what I call a fresh start!",
+  "Zeroed! Time to measure from here!"
+];
+
+// Helper to show a random phrase with animation
+function showEventPhrase(phrases, animClass = 'excited') {
+  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+  clippySpeech.textContent = phrase;
+  clippySpeech.classList.add('show');
+  clippyAnimate(animClass, 1500);
+  setTimeout(() => clippySpeech.classList.remove('show'), 8000);
+}
+
+let tipIndex = 0;
+let isDragging = false;
+let dragOffsetX, dragOffsetY;
+
+// Animation helper functions
+function clippyAnimate(animClass, duration = 1500) {
+  clippy.classList.remove('idle', 'wave', 'excited', 'thinking');
+  clippy.classList.add(animClass);
+  setTimeout(() => {
+    clippy.classList.remove(animClass);
+    clippy.classList.add('idle');
+  }, duration);
+}
+
+// Start idle animation
+clippy.classList.add('idle');
+
+// Show initial tip after 2 seconds with wave
+setTimeout(() => {
+  clippyAnimate('wave', 1500);
+  clippySpeech.classList.add('show');
+  setTimeout(() => clippySpeech.classList.remove('show'), 8000);
+}, 2000);
+
+// React to button clicks with animations
+connectBtn.addEventListener('click', () => {
+  clippyAnimate('thinking', 2000);
+});
+
+startRecBtn.addEventListener('click', () => {
+  clippyAnimate('excited', 1200);
+});
+
+calibBtn.addEventListener('click', () => {
+  clippyAnimate('thinking', 1500);
+});
+
+// Click to show next tip
+clippy.addEventListener('click', (e) => {
+  if (isDragging) return;
+  tipIndex = (tipIndex + 1) % clippyTips.length;
+  clippySpeech.textContent = clippyTips[tipIndex];
+  clippySpeech.classList.add('show');
+  setTimeout(() => clippySpeech.classList.remove('show'), 8000);
+});
+
+// Drag functionality
+clippy.addEventListener('mousedown', (e) => {
+  isDragging = false;
+  dragOffsetX = e.clientX - clippy.offsetLeft;
+  dragOffsetY = e.clientY - clippy.offsetTop;
+
+  const onMouseMove = (e) => {
+    isDragging = true;
+    clippy.style.left = (e.clientX - dragOffsetX) + 'px';
+    clippy.style.top = (e.clientY - dragOffsetY) + 'px';
+    clippy.style.right = 'auto';
+    clippy.style.bottom = 'auto';
+  };
+
+  const onMouseUp = () => {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    setTimeout(() => isDragging = false, 10);
+  };
+
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+});
+
+// Touch support for mobile
+clippy.addEventListener('touchstart', (e) => {
+  const touch = e.touches[0];
+  isDragging = false;
+  dragOffsetX = touch.clientX - clippy.offsetLeft;
+  dragOffsetY = touch.clientY - clippy.offsetTop;
+
+  const onTouchMove = (e) => {
+    isDragging = true;
+    const touch = e.touches[0];
+    clippy.style.left = (touch.clientX - dragOffsetX) + 'px';
+    clippy.style.top = (touch.clientY - dragOffsetY) + 'px';
+    clippy.style.right = 'auto';
+    clippy.style.bottom = 'auto';
+  };
+
+  const onTouchEnd = () => {
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onTouchEnd);
+    setTimeout(() => isDragging = false, 10);
+  };
+
+  document.addEventListener('touchmove', onTouchMove);
+  document.addEventListener('touchend', onTouchEnd);
+});
+</script>
+</body>
+</html>
